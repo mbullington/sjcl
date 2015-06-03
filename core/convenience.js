@@ -64,7 +64,11 @@
     rp.key = password;
 
     /* do the encryption */
-    p.ct = sjcl.mode[p.mode].encrypt(prp, plaintext, p.iv, adata, p.ts);
+    if (p.mode === "ccm" && sjcl.arrayBuffer && sjcl.arrayBuffer.ccm && plaintext instanceof ArrayBuffer) {
+      p.ct = sjcl.arrayBuffer.ccm.encrypt(prp, plaintext, p.iv, adata, p.ts);
+    } else {
+      p.ct = sjcl.mode[p.mode].encrypt(prp, plaintext, p.iv, adata, p.ts);
+    }
 
     //return j.encode(j._subtract(p, j.defaults));
     return p;
@@ -127,7 +131,11 @@
     prp = new sjcl.cipher[p.cipher](password);
 
     /* do the decryption */
-    ct = sjcl.mode[p.mode].decrypt(prp, p.ct, p.iv, adata, p.ts);
+    if (p.mode === "ccm" && sjcl.arrayBuffer && sjcl.arrayBuffer.ccm && p.ct instanceof ArrayBuffer) {
+      ct = sjcl.arrayBuffer.ccm.decrypt(prp, p.ct, p.iv, p.tag, adata, p.ts);
+    } else {
+      ct = sjcl.mode[p.mode].decrypt(prp, p.ct, p.iv, adata, p.ts);
+    }
 
     /* return the json data */
     j._add(rp, p);
@@ -208,11 +216,11 @@
       if (!(m=a[i].match(/^\s*(?:(["']?)([a-z][a-z0-9]*)\1)\s*:\s*(?:(-?\d+)|"([a-z0-9+\/%*_.@=\-]*)"|(true|false))$/i))) {
         throw new sjcl.exception.invalid("json decode: this isn't json!");
       }
-      if (m[3]) {
+      if (m[3] != null) {
         out[m[2]] = parseInt(m[3],10);
-      } else if (m[4]) {
+      } else if (m[4] != null) {
         out[m[2]] = m[2].match(/^(ct|adata|salt|iv)$/) ? sjcl.codec.base64.toBits(m[4]) : unescape(m[4]);
-      } else if (m[5]) {
+      } else if (m[5] != null) {
         out[m[2]] = m[5] === 'true';
       }
     }

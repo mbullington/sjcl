@@ -484,20 +484,28 @@ sjcl.random = new sjcl.prng(6);
   try {
     var buf, crypt, ab;
 
-    if (typeof window !== 'undefined' && typeof Uint32Array !== 'undefined') {
-      ab = new Uint32Array(32);
-      if (window.crypto && window.crypto.getRandomValues) {
-        window.crypto.getRandomValues(ab);
-      } else if (window.msCrypto && window.msCrypto.getRandomValues) {
-        window.msCrypto.getRandomValues(ab);
-      } else {
-        return;
-      }
+    if (typeof Uint32Array !== 'undefined') {
+      if(typeof window !== 'undefined') {
+        ab = new Uint32Array(32);
+        if (window.crypto && window.crypto.getRandomValues) {
+          window.crypto.getRandomValues(ab);
+        } else if (window.msCrypto && window.msCrypto.getRandomValues) {
+          window.msCrypto.getRandomValues(ab);
+        } else {
+          return;
+        }
 
-      // get cryptographically strong entropy in Webkit
-      sjcl.random.addEntropy(ab, 1024, "crypto.getRandomValues");
-    } else {
-      // no getRandomValues :-(
+        // get cryptographically strong entropy in Webkit
+        sjcl.random.addEntropy(ab, 1024, "crypto.getRandomValues");
+      } else {
+        try {
+          var crypto = require('cry' + 'pto');
+
+          buf = crypto.randomBytes(1024/8);
+          buf = new Uint32Array(new Uint8Array(buf).buffer);
+          sjcl.random.addEntropy(buf, 1024, "crypto.randomBytes");
+        } catch (e) {}
+      }
     }
   } catch (e) {
     if (typeof window !== 'undefined' && window.console) {
